@@ -12,6 +12,7 @@ int tDir = 1;
 int lastDtemp = 0;
 int lastPtemp = 0;
 int lastFspeed = 0;
+int lastGear = 0;
 
 #define CAN0_INT 2                              // Set INT to pin 2
 MCP_CAN CAN0(9);                               // Set CS to pin 10
@@ -21,11 +22,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
-  if (CAN0.begin(MCP_ANY, CAN_125KBPS, MCP_16MHZ) == CAN_OK)
-    Serial.println("MCP2515 Initialized Successfully!");
-  else
-    Serial.println("Error Initializing MCP2515...");
+  CAN0.begin(MCP_ANY, CAN_125KBPS, MCP_16MHZ);
 
   CAN0.setMode(MCP_NORMAL);                     // Set operation mode to normal so the MCP2515 sends acks to received data.
 
@@ -43,18 +40,20 @@ void loop()
     else
       sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
 
-    /*
-    if (rxId == 0x245) {
-      Serial.print(msgString);
-      for (byte i = 0; i < len; i++) {
-        sprintf(msgString, " 0x%.2X", rxBuf[i]);
-        Serial.print(msgString);
+    if (rxId == 0x215) {
+      if (rxBuf[4] == 0x38) {
+        if(lastGear != 1) {
+          lastGear = 1;
+          Serial.println("DRIVE");
+        }
+      } else if (rxBuf[4] == 0xB8) {
+        if(lastGear != -1) {
+          lastGear = -1;
+          Serial.println("REVERSE");
+        }
       }
-      Serial.println();
     }
-    */
-
-    if (rxId == 0x105) {
+    else if (rxId == 0x105) {
       if (rxBuf[0] == 0x09) {
         vDir = 1;
       } else if (rxBuf[0] == 0x08) {
